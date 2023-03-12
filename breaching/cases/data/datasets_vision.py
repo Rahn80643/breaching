@@ -30,6 +30,19 @@ def _build_dataset_vision(cfg_data, split, can_download=True):
             root=cfg_data.path, train=split == "training", download=can_download, transform=_default_t,
         )
         dataset.lookup = dict(zip(list(range(len(dataset))), dataset.targets))
+    
+    elif cfg_data.name == "MNIST": # New, add MNIST for testing
+        dataset = torchvision.datasets.MNIST(
+            root=cfg_data.path, train=split == "training", download=can_download, transform=_default_t,
+        )
+        dataset.lookup = dict(zip(list(range(len(dataset))), dataset.targets))
+
+    elif cfg_data.name == "LFWPeople": # New, add Caltech101 for testing
+        dataset = torchvision.datasets.LFWPeople(
+            root=cfg_data.path, download=can_download, transform=_default_t,
+        )
+        dataset.lookup = dict(zip(list(range(len(dataset))), dataset.targets))
+    
     elif cfg_data.name == "ImageNet":
         dataset = torchvision.datasets.ImageNet(
             root=cfg_data.path, split="train" if "train" in split else "val", transform=_default_t,
@@ -136,7 +149,7 @@ def _split_dataset_vision(dataset, cfg_data, user_idx=None, return_full_dataset=
             data_ids = torch.randperm(len(dataset))[:data_per_user]
             dataset = Subset(dataset, data_ids)
         elif cfg_data.partition == "random":  # Data not replicated across users. Split is deterministic over reruns!
-            data_per_user = len(dataset) // cfg_data.default_clients
+            data_per_user = len(dataset) // cfg_data.default_clients # len(dataset) = 10000, cfg_data.default_clients =10 => data_per_user = 1000
             generator = torch.Generator()
             generator.manual_seed(233)
             data_ids = torch.randperm(len(dataset))[user_idx * data_per_user : data_per_user * (user_idx + 1)]
@@ -218,6 +231,13 @@ def _parse_data_augmentations(cfg_data, split, PIL_only=False):
         transforms.append(torchvision.transforms.ToTensor())
         if cfg_data.normalize:
             transforms.append(torchvision.transforms.Normalize(cfg_data.mean, cfg_data.std))
+
+    # Since MNIST only contains 1 channel images, force to convert them to 3 channels to fit the main training algorithms in here
+    if "MNIST" == cfg_data.name:
+        torchvision.transforms.Lambda(lambda x: torch.cat([x, x, x], dim=0))
+        transforms.append(torchvision.transforms.Grayscale(num_output_channels=3))
+        
+
     return torchvision.transforms.Compose(transforms)
 
 

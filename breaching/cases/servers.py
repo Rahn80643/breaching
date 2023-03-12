@@ -137,6 +137,7 @@ class HonestServer:
 
     def distribute_payload(self, query_id=0):
         """Server payload to send to users. These are only references to simplfiy the simulation."""
+        # model.paramters(): the paramters (weight) of each layer in the model: https://pytorch.org/docs/master/generated/torch.nn.Module.html#torch.nn.Module.parameters
 
         self.reconfigure_model(self.cfg_server.model_state, query_id)
         honest_model_parameters = [p for p in self.model.parameters()]  # do not send only the generators

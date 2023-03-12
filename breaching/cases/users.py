@@ -497,16 +497,21 @@ class MultiUserAggregate(UserMultiStep):
                 torch._foreach_sub_(user_data["buffers"], aggregate_buffers)
                 torch._foreach_add_(aggregate_buffers, buffer_to_server, alpha=1 / self.num_users)
             if user_data["metadata"]["labels"] is not None:
-                aggregate_labels.append(user_data["metadata"]["labels"])
+                # aggregate_labels.append(user_data["metadata"]["labels"]) # avoid the #labels > # users 
+                target_device = user_data["metadata"]["labels"].device # make sure the new tensor and the user_data are in the same device
+                aggregate_labels.append(torch.as_tensor([user_data["metadata"]["labels"][0]]).to(target_device)) # new
+                
             if params := user_data["metadata"]["local_hyperparams"] is not None:
                 if params["labels"] is not None:
                     aggregate_label_lists += [l.cpu() for l in user_data["metadata"]["local_hyperparams"]["labels"]]
 
+        # the original implementation will cause the num_data_points > #users for inverting gradients => change to not * len(self.users)
         shared_data = dict(
             gradients=aggregate_updates,
             buffers=aggregate_buffers if self.provide_buffers else None,
             metadata=dict(
-                num_data_points=self.num_data_points * len(self.users) if self.provide_num_data_points else None,
+                # num_data_points=self.num_data_points * len(self.users) if self.provide_num_data_points else None, # orig
+                num_data_points=len(self.users) if self.provide_num_data_points else None, # make sure the #reconstructed_images == #users
                 labels=torch.cat(aggregate_labels).sort()[0] if self.provide_labels else None,
                 num_users=self.num_users,
                 local_hyperparams=dict(

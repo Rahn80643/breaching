@@ -4,7 +4,7 @@ defaults:
   - data: ImageNetAnimals
   - impl: default
   - server: honest-but-curious
-  - user: local_updates # multiuser_aggregate # local_updates
+  - user: multiuser_aggregate # multiuser_aggregate # local_updates
   - _self_
 model: ResNet18
 

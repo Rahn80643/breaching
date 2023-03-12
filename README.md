@@ -52,6 +52,16 @@ reconstructed_user_data, stats = attacker.reconstruct(payloads, shared_user_data
 
 For more details, have a look at the notebooks in the `examples/` folder, the cmd-line script `simulate_breach.py` or the minimal examples in `minimal_example.py` and `minimal_example_robbing_the_fed.py`.
 
+### Modification
+1. `user` in `breaching/config/case/4_fedavgsmall_scale_FL.yaml` controls how the user's model be used in the server (aggregate users' models or take one user's model)
+
+2. `max_iterations` in `breaching/config/attack/invertinggradients.yaml` controls the number of iterations for the server to reconstruct images
+
+3. The number of clients in FL can be set in `breaching/config/case/data/CIFAR10.yaml` or `braching/config/case/data/CIFAR100.yaml`
+
+4. 
+
+
 ### What is this framework?
 This framework is modular collections of attacks against federated learning that breach privacy by recovering user data from their updates sent to a central server. The framework covers gradient updates as well as updates from multiple local training steps and evaluates datasets and models in language and vision. Requirements and variations in the threat model for each attack (such as the existence of labels or number of data points) are made explicit. Modern initializations and label recovery strategies are also included.
 

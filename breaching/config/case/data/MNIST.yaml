@@ -1,28 +1,32 @@
-name: CIFAR100
+name: MNIST
 modality: vision
 task: classification
 
 path: "~/data"
-size: 50_000
-classes: 100
+size: 60_000
+classes: 10
 shape:
-  - 3
-  - 32
-  - 32
+  - 3 # though it's gray scale, expand to 3 channels to fit the training algorithm
+  - 28
+  - 28
 
+# Preprocessing
+# https://stackoverflow.com/questions/70892017/normalize-mnist-in-pytorch
+# https://nextjournal.com/gkoehler/pytorch-mnist
 normalize: True
 mean:
-  - 0.5071598291397095
-  - 0.4866936206817627
-  - 0.44120192527770996
+  - 0.1307
+  # - 0.1307
+  # - 0.1307
 std:
-  - 0.2673342823982239
-  - 0.2564384639263153
-  - 0.2761504650115967
+  - 0.3081
+  # - 0.3081
+  # - 0.3081
 
+# Data Augmentations
 augmentations_train:
   RandomCrop:
-    - 32
+    - 28
     - 4
   RandomHorizontalFlip: 0.5
 augmentations_val:

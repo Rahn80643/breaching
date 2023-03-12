@@ -21,6 +21,7 @@ def report(
     compute_rpsnr=True,
     compute_ssim=True,
     cfg_case=None,
+    max_length=10, 
     setup=dict(device=torch.device("cpu"), dtype=torch.float),
 ):
     log.info("Starting evaluations for attack effectiveness report...")
@@ -48,7 +49,7 @@ def report(
         test_label_acc = count_integer_overlap(
             reconstructed_user_data["labels"].view(-1),
             true_user_data["labels"].view(-1),
-            maxlength=cfg_case.data.vocab_size,
+            maxlength= max_length #cfg_case.data.vocab_size, # change to class length
         ).item()
     else:
         test_label_acc = 0

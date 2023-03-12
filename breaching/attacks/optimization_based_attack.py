@@ -26,7 +26,7 @@ class OptimizationBasedAttacker(_BaseAttacker):
 
     def __init__(self, model, loss_fn, cfg_attack, setup=dict(dtype=torch.float, device=torch.device("cpu"))):
         super().__init__(model, loss_fn, cfg_attack, setup)
-        objective_fn = objective_lookup.get(self.cfg.objective.type)
+        objective_fn = objective_lookup.get(self.cfg.objective.type) # self.cfg.objective.type: cosine_similarity in this case
         if objective_fn is None:
             raise ValueError(f"Unknown objective type {self.cfg.objective.type} given.")
         else:
@@ -75,8 +75,8 @@ class OptimizationBasedAttacker(_BaseAttacker):
         except KeyboardInterrupt:
             print("Trial procedure manually interruped.")
             pass
-        optimal_solution = self._select_optimal_reconstruction(candidate_solutions, scores, stats)
-        reconstructed_data = dict(data=optimal_solution, labels=labels)
+        optimal_solution = self._select_optimal_reconstruction(candidate_solutions, scores, stats) # TODO: how optimal_solution is got
+        reconstructed_data = dict(data=optimal_solution, labels=labels) ## TODO: how reconstructed_data is got 
         if server_payload[0]["metadata"].modality == "text":
             reconstructed_data = self._postprocess_text_data(reconstructed_data)
         if "ClassAttack" in server_secrets:
@@ -95,28 +95,29 @@ class OptimizationBasedAttacker(_BaseAttacker):
             regularizer.initialize(rec_model, shared_data, labels)
         self.objective.initialize(self.loss_fn, self.cfg.impl, shared_data[0]["metadata"]["local_hyperparams"])
 
-        # Initialize candidate reconstruction data
+        # Initialize candidate randomly, and its size is the same as the target data
         candidate = self._initialize_data([shared_data[0]["metadata"]["num_data_points"], *self.data_shape])
         if initial_data is not None:
             candidate.data = initial_data.data.clone().to(**self.setup)
 
-        best_candidate = candidate.detach().clone()
+        best_candidate = candidate.detach().clone() # initialize the best candidate with the original candidate
         minimal_value_so_far = torch.as_tensor(float("inf"), **self.setup)
 
         # Initialize optimizers
-        optimizer, scheduler = self._init_optimizer([candidate])
+        optimizer, scheduler = self._init_optimizer([candidate]) # load the settings of optimizer and scheduler from cfg
         current_wallclock = time.time()
         try:
+            # search the closest candidate in self.cfg.optim.max)iterations iterations
             for iteration in range(self.cfg.optim.max_iterations):
-                closure = self._compute_objective(candidate, labels, rec_model, optimizer, shared_data, iteration)
+                closure = self._compute_objective(candidate, labels, rec_model, optimizer, shared_data, iteration) #TODO! important!
                 objective_value, task_loss = optimizer.step(closure), self.current_task_loss
                 scheduler.step()
 
                 with torch.no_grad():
                     # Project into image space
                     if self.cfg.optim.boxed:
-                        candidate.data = torch.max(torch.min(candidate, (1 - self.dm) / self.ds), -self.dm / self.ds)
-                    if objective_value < minimal_value_so_far:
+                        candidate.data = torch.max(torch.min(candidate, (1 - self.dm) / self.ds), -self.dm / self.ds) # data mean, data standard deviation
+                    if objective_value < minimal_value_so_far: # keep updating the smallest object_value to minimal_value_so_far, and updating the corresponding the best_candidate 
                         minimal_value_so_far = objective_value.detach()
                         best_candidate = candidate.detach().clone()
 
@@ -143,7 +144,9 @@ class OptimizationBasedAttacker(_BaseAttacker):
         return best_candidate.detach()
 
     def _compute_objective(self, candidate, labels, rec_model, optimizer, shared_data, iteration):
-        def closure():
+        # TODO: find the gradient difference
+        # objective function is defined as cosine similarity in this case
+        def closure(): # called by optimizer(closure)
             optimizer.zero_grad()
 
             if self.cfg.differentiable_augmentations:
@@ -154,32 +157,40 @@ class OptimizationBasedAttacker(_BaseAttacker):
 
             total_objective = 0
             total_task_loss = 0
+
+            # shared_data is the gradeient after the model is trained
+            counter =0
             for model, data in zip(rec_model, shared_data):
-                objective, task_loss = self.objective(model, data["gradients"], candidate_augmented, labels)
+                # TODO: objective and task_loss?
+                objective, task_loss = self.objective(model, data["gradients"], candidate_augmented, labels) # calculate the cosine similarity of the given gradients and the candidates
                 total_objective += objective
                 total_task_loss += task_loss
-            for regularizer in self.regularizers:
-                total_objective += regularizer(candidate_augmented)
+                counter +=1
+            
+            counter =0
+            for regularizer in self.regularizers: # regularizer is set as total variant here
+                total_objective += regularizer(candidate_augmented) # Total variant
+                counter +=1
 
             if total_objective.requires_grad:
-                total_objective.backward(inputs=candidate, create_graph=False)
+                total_objective.backward(inputs=candidate, create_graph=False) # calculate the gradient
             with torch.no_grad():
-                if self.cfg.optim.langevin_noise > 0:
+                if self.cfg.optim.langevin_noise > 0: # not used in this case
                     step_size = optimizer.param_groups[0]["lr"]
                     noise_map = torch.randn_like(candidate.grad)
                     candidate.grad += self.cfg.optim.langevin_noise * step_size * noise_map
-                if self.cfg.optim.grad_clip is not None:
+                if self.cfg.optim.grad_clip is not None: # not used in this case
                     grad_norm = candidate.grad.norm()
                     if grad_norm > self.cfg.optim.grad_clip:
                         candidate.grad.mul_(self.cfg.optim.grad_clip / (grad_norm + 1e-6))
                 if self.cfg.optim.signed is not None:
-                    if self.cfg.optim.signed == "soft":
+                    if self.cfg.optim.signed == "soft": # not used in this case
                         scaling_factor = (
                             1 - iteration / self.cfg.optim.max_iterations
                         )  # just a simple linear rule for now
                         candidate.grad.mul_(scaling_factor).tanh_().div_(scaling_factor)
                     elif self.cfg.optim.signed == "hard":
-                        candidate.grad.sign_()
+                        candidate.grad.sign_() # used, return the sign of each value. BUT no output variable gets the signs
                     else:
                         pass
 

@@ -1,35 +1,39 @@
-name: CIFAR100
+name: LFWPeople
 modality: vision
 task: classification
 
 path: "~/data"
-size: 50_000
-classes: 100
+size: 49829
+classes: 101
 shape:
   - 3
-  - 32
-  - 32
+  - 224
+  - 224
 
+# Preprocessing
 normalize: True
 mean:
-  - 0.5071598291397095
-  - 0.4866936206817627
-  - 0.44120192527770996
-std:
-  - 0.2673342823982239
-  - 0.2564384639263153
-  - 0.2761504650115967
+  - 0.5
+  - 0.5
+  - 0.5
 
+std:
+  - 0.5
+  - 0.5
+  - 0.5
+
+# Data Augmentations
 augmentations_train:
-  RandomCrop:
-    - 32
-    - 4
+  RandomResizedCrop: 224
   RandomHorizontalFlip: 0.5
+
 augmentations_val:
+  Resize: 256
+  CenterCrop: 224
 
 # Federated Learning specifics:
-default_clients: 10
-partition: balanced # used for synthetic splits. Current options for synthetic split: balanced / unique-class
+default_clients: 500
+partition: unique-class # used for synthetic splits. Current options for synthetic split: balanced / unique-class
 examples_from_split: validation
 
 # Data-specific implementation constants:

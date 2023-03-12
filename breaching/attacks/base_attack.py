@@ -44,11 +44,11 @@ class _BaseAttacker:
         """Basic startup common to many reconstruction methods."""
         stats = defaultdict(list)
 
-        shared_data = shared_data.copy()  # Shallow copy is enough
-        server_payload = server_payload.copy()
+        shared_data = shared_data.copy()  # Shallow copy is enough; the gradient is copied
+        server_payload = server_payload.copy() # copy the architecture
 
         # Load preprocessing constants:
-        metadata = server_payload[0]["metadata"]
+        metadata = server_payload[0]["metadata"] # contains the hyperparamters of the model; input dimension
         self.data_shape = metadata.shape
         if hasattr(metadata, "mean"):
             self.dm = torch.as_tensor(metadata.mean, **self.setup)[None, :, None, None]
@@ -281,7 +281,7 @@ class _BaseAttacker:
 
         candidate.to(memory_format=self.memory_format)
         candidate.requires_grad = True
-        candidate.grad = torch.zeros_like(candidate)
+        candidate.grad = torch.zeros_like(candidate) # candidate is [4, 3, 32, 32] if using CIFAR10
         return candidate
 
     def _init_optimizer(self, candidate):

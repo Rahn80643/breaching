@@ -174,6 +174,7 @@ class CosineSimilarity(GradientLoss):
         self.scale = scale
         self.task_regularization = task_regularization
 
+    # for inverting gradients, gradient_rec is the calculated gradients; gradient_data is obtained from the aggregated model which is the goal
     def gradient_based_loss(self, gradient_rec, gradient_data):
         return self._cosine_sim(gradient_rec, gradient_data) * self.scale
 

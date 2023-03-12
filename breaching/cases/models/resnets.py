@@ -80,6 +80,14 @@ class ResNet(torch.nn.Module):
             bn1 = self._norm_layer(self.inplanes)
             nonlin = self._nonlin_layer()
             self.stem = torch.nn.Sequential(conv1, bn1, nonlin)
+        elif stem == "MNIST":
+            conv1 = self._conv_layer(
+                channels, self.inplanes, kernel_size=3, stride=1, padding=1, groups=1, bias=self.use_bias, dilation=1
+                # 1, self.inplanes, kernel_size=3, stride=1, padding=1, groups=1, bias=self.use_bias, dilation=1
+            )
+            bn1 = self._norm_layer(self.inplanes)
+            nonlin = self._nonlin_layer()
+            self.stem = torch.nn.Sequential(conv1, bn1, nonlin)
         elif stem == "standard":
             conv1 = self._conv_layer(channels, self.inplanes, kernel_size=7, stride=2, padding=3, bias=self.use_bias)
             bn1 = self._norm_layer(self.inplanes)
@@ -225,6 +233,7 @@ class ResNet(torch.nn.Module):
 
     def _forward_impl(self, x):
         # See note [TorchScript super()]
+        # print("x.shape" + str(x.shape))
         x = self.stem(x)
 
         x = self.layers(x)

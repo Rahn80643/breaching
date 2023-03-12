@@ -240,7 +240,7 @@ def _construct_vision_model(cfg_model, cfg_data, pretrained=True, **kwargs):
                 model = torch.nn.Sequential(torch.nn.Flatten(), _Select(classes))
             else:
                 raise ValueError(f"Could not find ImageNet model {cfg_model} in torchvision.models or custom models.")
-    else:
+    elif "CIFAR" in cfg_data.name:
         # CIFAR Model from here:
         if "resnetgn" in cfg_model.lower():
             block, layers = resnet_depths_to_config(int("".join(filter(str.isdigit, cfg_model))))
@@ -399,6 +399,84 @@ def _construct_vision_model(cfg_model, cfg_data, pretrained=True, **kwargs):
                     ]
                 )
             )
+    elif "MNIST" in cfg_data.name:
+        # MNIST Model from here, currently, only supports resnet:
+        if "resnetgn" in cfg_model.lower():
+            block, layers = resnet_depths_to_config(int("".join(filter(str.isdigit, cfg_model))))
+            model = ResNet(
+                block,
+                layers,
+                channels,
+                classes,
+                stem="MNIST",
+                convolution_type="Standard",
+                nonlin="ReLU",
+                norm="groupnorm4th",
+                downsample="B",
+                width_per_group=16 if len(layers) < 4 else 64,
+                zero_init_residual=False,
+            )
+        elif "resnet" in cfg_model.lower():
+            if "-" in cfg_model.lower():  # Hacky way to separate ResNets from wide ResNets which are e.g. 28-10
+                depth = int("".join(filter(str.isdigit, cfg_model.split("-")[0])))
+                width = int("".join(filter(str.isdigit, cfg_model.split("-")[1])))
+            else:
+                depth = int("".join(filter(str.isdigit, cfg_model)))
+                width = 1
+            block, layers = resnet_depths_to_config(depth)
+            model = ResNet(
+                block,
+                layers,
+                channels,
+                classes,
+                stem="MNIST",
+                convolution_type="Standard",
+                nonlin="ReLU",
+                norm="BatchNorm2d",
+                downsample="B",
+                width_per_group=(16 if len(layers) < 4 else 64) * width,
+                zero_init_residual=False,
+            )
+
+    elif "LFWPeople" in cfg_data.name:
+        # CIFAR Model from here:
+        if "resnetgn" in cfg_model.lower():
+            block, layers = resnet_depths_to_config(int("".join(filter(str.isdigit, cfg_model))))
+            model = ResNet(
+                block,
+                layers,
+                channels,
+                classes,
+                stem="CIFAR",
+                convolution_type="Standard",
+                nonlin="ReLU",
+                norm="groupnorm4th",
+                downsample="B",
+                width_per_group=16 if len(layers) < 4 else 64,
+                zero_init_residual=False,
+            )
+        elif "resnet" in cfg_model.lower():
+            if "-" in cfg_model.lower():  # Hacky way to separate ResNets from wide ResNets which are e.g. 28-10
+                depth = int("".join(filter(str.isdigit, cfg_model.split("-")[0])))
+                width = int("".join(filter(str.isdigit, cfg_model.split("-")[1])))
+            else:
+                depth = int("".join(filter(str.isdigit, cfg_model)))
+                width = 1
+            block, layers = resnet_depths_to_config(depth)
+            model = ResNet(
+                block,
+                layers,
+                channels,
+                classes,
+                stem="CIFAR",
+                convolution_type="Standard",
+                nonlin="ReLU",
+                norm="BatchNorm2d",
+                downsample="B",
+                width_per_group=(16 if len(layers) < 4 else 64) * width,
+                zero_init_residual=False,
+            )
+
         else:
             raise ValueError("Model could not be found.")
 
