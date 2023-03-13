@@ -37,11 +37,20 @@ def _build_dataset_vision(cfg_data, split, can_download=True):
         )
         dataset.lookup = dict(zip(list(range(len(dataset))), dataset.targets))
 
-    elif cfg_data.name == "LFWPeople": # New, add Caltech101 for testing
-        dataset = torchvision.datasets.LFWPeople(
-            root=cfg_data.path, download=can_download, transform=_default_t,
+    elif cfg_data.name == "OxfordIIITPet": # New, add Caltech101 for testing
+        # Apply transformations here to make sure the images are resized and cropped to 224x 224
+        import torchvision.transforms as transforms
+        transformPet = transforms.Compose([
+            transforms.Resize(256),
+            transforms.CenterCrop(224),
+            transforms.ToTensor(),
+        ])
+
+        dataset = torchvision.datasets.OxfordIIITPet(
+            root=cfg_data.path, split='trainval', download=can_download, transform=transformPet,
         )
-        dataset.lookup = dict(zip(list(range(len(dataset))), dataset.targets))
+        # dataset.lookup = dict(zip(list(range(len(dataset))), dataset.targets))
+        dataset.lookup = dict(zip(list(range(len(dataset))), dataset._labels))
     
     elif cfg_data.name == "ImageNet":
         dataset = torchvision.datasets.ImageNet(
@@ -73,10 +82,10 @@ def _build_dataset_vision(cfg_data, split, can_download=True):
         cfg_data.mean = data_mean
         cfg_data.std = data_std
 
-    transforms = _parse_data_augmentations(cfg_data, split)
+    transforms_arg = _parse_data_augmentations(cfg_data, split)
 
     # Apply transformations
-    dataset.transform = transforms if transforms is not None else None
+    dataset.transform = transforms_arg if transforms_arg is not None else None
 
     # Save data mean and data std for easy access:
     if cfg_data.normalize:
@@ -91,6 +100,19 @@ def _build_dataset_vision(cfg_data, split, can_download=True):
         dataset = Subset(dataset, torch.arange(0, cfg_data.size))
 
     collate_fn = _torchvision_collate
+
+    # # DEL
+    # images, labels = next(iter(dataset))
+    # grid = torchvision.utils.make_grid(images, nrow=4)
+
+    # # Plot the grid of images
+    # import matplotlib.pyplot as plt
+    # plt.imshow(grid.permute(1, 2, 0))
+    # plt.axis('off')
+    # plt.show()
+    # # DEL end
+
+
     return dataset, collate_fn
 
 

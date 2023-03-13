@@ -438,7 +438,7 @@ def _construct_vision_model(cfg_model, cfg_data, pretrained=True, **kwargs):
                 zero_init_residual=False,
             )
 
-    elif "LFWPeople" in cfg_data.name:
+    elif "OxfordIIITPet" in cfg_data.name:
         # CIFAR Model from here:
         if "resnetgn" in cfg_model.lower():
             block, layers = resnet_depths_to_config(int("".join(filter(str.isdigit, cfg_model))))
@@ -476,6 +476,8 @@ def _construct_vision_model(cfg_model, cfg_data, pretrained=True, **kwargs):
                 width_per_group=(16 if len(layers) < 4 else 64) * width,
                 zero_init_residual=False,
             )
+
+            s =1
 
         else:
             raise ValueError("Model could not be found.")

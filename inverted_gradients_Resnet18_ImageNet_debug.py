@@ -17,7 +17,8 @@ logging.basicConfig(level=logging.INFO, handlers=[logging.StreamHandler(sys.stdo
 logger = logging.getLogger()
 
 # Initialize cfg object and system setup
-cfg = breaching.get_config(overrides=["case=4_fedavg_small_scale", "case/data=LFWPeople"])
+cfg = breaching.get_config(overrides=["case=4_fedavg_small_scale", "case/data=OxfordIIITPet"])
+# cfg = breaching.get_config(overrides=["case=4_fedavg_small_scale", "case/data=ImageNet"])
           
 device = torch.device(f'cuda:0') if torch.cuda.is_available() else torch.device('cpu')
 torch.backends.cudnn.benchmark = cfg.case.impl.benchmark
